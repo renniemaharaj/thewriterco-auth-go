@@ -1,0 +1,2 @@
+dsn: "postgresql://thewriterco_user:PcIskizaxEPuaN9KRdHNfxPXtffVZA1Q@dpg-cubnnrogph6c73a83jb0-a.oregon-postgres.render.com/thewriterco"
+jwt_signing_key: "LxsKJywDL5O5PvgODZhBH12KE6k2yL8E"
