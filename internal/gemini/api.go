@@ -10,9 +10,11 @@ import (
 )
 
 // RegisterHandlers registers the routes for the GenAI API.
-func RegisterHandlers(r *routing.Router, service *Service) {
+func RegisterHandlers(r *routing.RouteGroup, service *Service, authHandler routing.Handler) {
 	r.Post("/ask", handleAsk(service))
 	r.Post("/find", handleFind(service))
+
+	r.Use(authHandler)
 }
 
 // Struct representing the Scripture schema

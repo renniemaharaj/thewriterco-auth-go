@@ -19,7 +19,7 @@ type Config struct {
 	// the server port. Defaults to 8080
 	ServerPort int `yaml:"server_port" env:"SERVER_PORT"`
 	// the data source name (DSN) for connecting to the database. required.
-	DSN string `yaml:"dsn" env:"DSN,secret"`
+	// DSN string `yaml:"dsn" env:"DSN,secret"`
 	// JWT signing key. required.
 	JWTSigningKey string `yaml:"jwt_signing_key" env:"JWT_SIGNING_KEY,secret"`
 	// JWT expiration in hours. Defaults to 72 hours (3 days)
@@ -29,7 +29,7 @@ type Config struct {
 // Validate validates the application configuration.
 func (c Config) Validate() error {
 	return validation.ValidateStruct(&c,
-		validation.Field(&c.DSN, validation.Required),
+		// validation.Field(&c.DSN, validation.Required),
 		validation.Field(&c.JWTSigningKey, validation.Required),
 	)
 }

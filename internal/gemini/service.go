@@ -3,6 +3,9 @@ package gemini
 import (
 	"context"
 	"fmt"
+	"log"
+
+	// "os"
 	"strings"
 
 	"github.com/google/generative-ai-go/genai"
@@ -30,24 +33,24 @@ type Service struct {
 }
 
 // NewService creates a new instance of Service with the provided config.
-func NewService(ctx context.Context, config Config) (*Service, error) {
+func NewService(ctx context.Context, config Config) *Service {
 
 	if config.APIKey == "" || config.ModelName == "" {
-		return nil, fmt.Errorf("APIKey and ModelName are required")
+		log.Fatalf("APIKey and ModelName are required")
 	}
 
 	if config.APIKey == "" || config.ModelName == "" {
-		return nil, fmt.Errorf("APIKey and ModelName are required")
+		log.Fatalf("APIKey and ModelName are required")
 	}
 
 	client, err := genai.NewClient(ctx, option.WithAPIKey(config.APIKey))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create GenAI client: %w", err)
+		log.Fatalf("failed to create GenAI client: %v", err)
 	}
 
 	model := client.GenerativeModel(config.ModelName)
 	if model == nil {
-		return nil, fmt.Errorf("invalid model name: %s", config.ModelName)
+		log.Fatalf("invalid model name: %s", config.ModelName)
 	}
 
 	// Configure model
@@ -60,23 +63,12 @@ func NewService(ctx context.Context, config Config) (*Service, error) {
 		Parts: []genai.Part{genai.Text(GetAxiomsAndInstructions())},
 	}
 
-	// Initialize chat with system instructions
-	// session := model.StartChat()
-	// _, err = session.SendMessage(ctx, genai.Text(GetAxiomsAndInstructions()))
-
-	// fmt.Printf("System instructions set: %v\n", GetAxiomsAndInstructions())
-
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to set system instructions: %w", err)
-	// }
-
-	// logger.Info("GenAI service initialized successfully.")
 	return &Service{
 		client: client,
 		model:  model,
 		config: config,
 		// logger: logger,
-	}, nil
+	}
 }
 
 // SendMessage sends a message to the generative model and returns the response.

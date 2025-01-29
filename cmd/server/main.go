@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"database/sql"
+	// "database/sql"
 	"flag"
 	"fmt"
 	"net/http"
@@ -10,23 +10,29 @@ import (
 	"strings"
 	"time"
 
-	dbx "github.com/go-ozzo/ozzo-dbx"
+	// dbx "github.com/go-ozzo/ozzo-dbx"
+	// dbx "github.com/go-ozzo/ozzo-dbx"
 	routing "github.com/go-ozzo/ozzo-routing/v2"
 	"github.com/go-ozzo/ozzo-routing/v2/content"
 	"github.com/go-ozzo/ozzo-routing/v2/cors"
 	_ "github.com/lib/pq"
+	"golang.org/x/time/rate"
+
+	// "golang.org/x/oauth2/authhandler"
 
 	// "github.com/qiangxue/go-rest-api/internal/album"
-	"github.com/qiangxue/go-rest-api/internal/album"
+
 	"github.com/qiangxue/go-rest-api/internal/auth"
 	"github.com/qiangxue/go-rest-api/internal/config"
 	"github.com/qiangxue/go-rest-api/internal/errors"
 	"github.com/qiangxue/go-rest-api/internal/gemini"
 	"github.com/qiangxue/go-rest-api/internal/healthcheck"
+	"github.com/qiangxue/go-rest-api/internal/middleware"
 
 	"github.com/qiangxue/go-rest-api/pkg/accesslog"
-	"github.com/qiangxue/go-rest-api/pkg/dbcontext"
+	// "github.com/qiangxue/go-rest-api/pkg/dbcontext"
 	"github.com/qiangxue/go-rest-api/pkg/log"
+	// "github.com/qiangxue/go-rest-api/internal/middleware"
 )
 
 // Version indicates the current version of the application.
@@ -47,14 +53,14 @@ func main() {
 	}
 
 	// connect to the database
-	db, err := dbx.MustOpen("postgres", cfg.DSN)
+	// db, err := dbx.MustOpen("postgres", cfg.DSN)
 
 	// close the database when the application exits
-	defer func() {
-		if err := db.Close(); err != nil {
-			logger.Error(err)
-		}
-	}()
+	// defer func() {
+	// 	if err := db.Close(); err != nil {
+	// 		logger.Error(err)
+	// 	}
+	// }()
 
 	// check the database connection
 	if err != nil {
@@ -63,14 +69,14 @@ func main() {
 	}
 
 	// set up database connection pool
-	db.QueryLogFunc = logDBQuery(logger)
-	db.ExecLogFunc = logDBExec(logger)
+	// db.QueryLogFunc = logDBQuery(logger)
+	// db.ExecLogFunc = logDBExec(logger)
 
 	// build HTTP server
 	address := fmt.Sprintf(":%v", cfg.ServerPort)
 	hs := &http.Server{
 		Addr:    address,
-		Handler: buildHandler(logger, dbcontext.New(db), cfg),
+		Handler: buildHandler(logger, cfg),
 	}
 
 	// start the HTTP server with graceful shutdown
@@ -83,7 +89,8 @@ func main() {
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
-func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.Handler {
+// func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.Handler {
+func buildHandler(logger log.Logger, cfg *config.Config) http.Handler {
 	router := routing.New()
 	// Define allowed origins
 	allowedOrigins := []string{
@@ -93,38 +100,28 @@ func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.
 		"thewriterco.pages.dev",
 	}
 
+	// 10 requests per 60 seconds → 1 request every 6 seconds
+	rl := middleware.NewRateLimiter(rate.Every(6*time.Second), 10)
+
+	// GET,POST,PUT,DELETE,OPTIONS
+
 	router.Use(
+		middleware.RateLimitMiddleware(rl),
 		accesslog.Handler(logger),
 		errors.Handler(logger),
 		content.TypeNegotiator(content.JSON),
 		cors.Handler(cors.Options{
 			AllowOrigins:     strings.Join(allowedOrigins, ","),
-			AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+			AllowMethods:     "POST",
 			AllowHeaders:     "Authorization,Content-Type",
 			AllowCredentials: true,
 			MaxAge:           3600, // seconds
 		}),
 	)
 
-	healthcheck.RegisterHandlers(router, Version)
-
-	rg := router.Group("/v1")
-
-	authHandler := auth.Handler(cfg.JWTSigningKey)
-
-	album.RegisterHandlers(rg.Group(""),
-		album.NewService(album.NewRepository(db, logger), logger),
-		authHandler, logger,
-	)
-
-	auth.RegisterHandlers(rg.Group(""),
-		auth.NewService(cfg.JWTSigningKey, cfg.JWTExpiration, logger),
-		logger,
-	)
-
-	// prefrably, this should be in .env file
+	// Register GenAI service
 	genaicfg := gemini.Config{
-		APIKey:           "AIzaSyB1rbyr2HsV6EXOMqbFw28sqjH0uPoKHO4",
+		APIKey:           os.Getenv("GEMINI_API_KEY"),
 		ModelName:        "gemini-2.0-flash-exp",
 		Temperature:      1.0,
 		TopK:             40,
@@ -133,33 +130,54 @@ func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.
 		ResponseMIMEType: "text/plain",
 	}
 
-	genaiService, err := gemini.NewService(context.Background(), genaicfg)
-	if err != nil {
-		logger.Error("failed to create GenAI service")
-		os.Exit(-1)
-	}
-	gemini.RegisterHandlers(router, genaiService)
+	healthcheck.RegisterHandlers(router, Version)
+
+	rg := router.Group("/v1")
+
+	authHandler := auth.Handler(cfg.JWTSigningKey)
+
+	// album.RegisterHandlers(rg.Group(""),
+	// 	album.NewService(album.NewRepository(db, logger), logger),
+	// 	authHandler, logger,
+	// )
+
+	auth.RegisterHandlers(rg.Group(""),
+		auth.NewService(cfg.JWTSigningKey, cfg.JWTExpiration, logger),
+		logger,
+	)
+
+	gemini.RegisterHandlers(rg.Group(""),
+		gemini.NewService(context.Background(), genaicfg),
+		authHandler,
+	)
+
+	// genaiService, err := gemini.NewService(context.Background(), genaicfg)
+
+	// if err != nil {
+	// 	logger.Error("failed to create GenAI service")
+	// 	os.Exit(-1)
+	// }
 	return router
 }
 
 // logDBQuery returns a logging function that can be used to log SQL queries.
-func logDBQuery(logger log.Logger) dbx.QueryLogFunc {
-	return func(ctx context.Context, t time.Duration, sql string, rows *sql.Rows, err error) {
-		if err == nil {
-			logger.With(ctx, "duration", t.Milliseconds(), "sql", sql).Info("DB query successful")
-		} else {
-			logger.With(ctx, "sql", sql).Errorf("DB query error: %v", err)
-		}
-	}
-}
+// func logDBQuery(logger log.Logger) dbx.QueryLogFunc {
+// 	return func(ctx context.Context, t time.Duration, sql string, rows *sql.Rows, err error) {
+// 		if err == nil {
+// 			logger.With(ctx, "duration", t.Milliseconds(), "sql", sql).Info("DB query successful")
+// 		} else {
+// 			logger.With(ctx, "sql", sql).Errorf("DB query error: %v", err)
+// 		}
+// 	}
+// }
 
 // logDBExec returns a logging function that can be used to log SQL executions.
-func logDBExec(logger log.Logger) dbx.ExecLogFunc {
-	return func(ctx context.Context, t time.Duration, sql string, result sql.Result, err error) {
-		if err == nil {
-			logger.With(ctx, "duration", t.Milliseconds(), "sql", sql).Info("DB execution successful")
-		} else {
-			logger.With(ctx, "sql", sql).Errorf("DB execution error: %v", err)
-		}
-	}
-}
+// func logDBExec(logger log.Logger) dbx.ExecLogFunc {
+// 	return func(ctx context.Context, t time.Duration, sql string, result sql.Result, err error) {
+// 		if err == nil {
+// 			logger.With(ctx, "duration", t.Milliseconds(), "sql", sql).Info("DB execution successful")
+// 		} else {
+// 			logger.With(ctx, "sql", sql).Errorf("DB execution error: %v", err)
+// 		}
+// 	}
+// }
