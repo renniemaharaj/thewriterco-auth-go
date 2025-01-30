@@ -80,19 +80,19 @@ func main() {
 	}
 
 	// Start health check goroutine
-	// go func() {
-	// 	ticker := time.NewTicker(30 * time.Second)
-	// 	client := &http.Client{}
-	// 	for range ticker.C {
-	// 		apiURL := os.Getenv("STAY_ALIVE_API_URL")
-	// 		_, err := client.Get(fmt.Sprintf("%s/healthcheck", apiURL))
-	// 		if err != nil {
-	// 			logger.Errorf("health check failed: %v", err)
-	// 		} else {
-	// 			logger.Infof("health check passed")
-	// 		}
-	// 	}
-	// }()
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		client := &http.Client{}
+		for range ticker.C {
+			apiURL := os.Getenv("STAY_ALIVE_API_URL")
+			_, err := client.Get(fmt.Sprintf("%s/healthcheck", apiURL))
+			if err != nil {
+				logger.Errorf("health check failed: %v", err)
+			} else {
+				logger.Infof("health check passed")
+			}
+		}
+	}()
 
 	// start the HTTP server with graceful shutdown
 	go routing.GracefulShutdown(hs, 10*time.Second, logger.Infof)
