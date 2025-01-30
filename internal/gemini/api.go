@@ -75,8 +75,8 @@ type Exchange struct {
 }
 
 type AskSchema struct {
-	Conversation []Exchange `json:"conversation"`
-	Theme        string     `json:"themeContext"`
+	Conversation      []Exchange `json:"conversation"`
+	AdditionalContext []string   `json:"additionalContext"`
 }
 
 // handleAsk handles requests for the /ask endpoint.
@@ -94,8 +94,8 @@ func handleAsk(service *Service) routing.Handler {
 
 		// Parse the JSON string inside `rawRequest.Message`
 		var askSchema struct {
-			Conversation string `json:"conversation"` // Base64-encoded MessagePack
-			ThemeContext string `json:"themeContext"`
+			Conversation      string   `json:"conversation"` // Base64-encoded MessagePack
+			AdditionalContext []string `json:"additionalContext"`
 		}
 
 		if err := json.Unmarshal([]byte(rawRequest.Message), &askSchema); err != nil {
@@ -149,8 +149,8 @@ func handleAsk(service *Service) routing.Handler {
 		// Build final request object
 		// Convert request to JSON string
 		jsonBytes, err := json.Marshal(AskSchema{
-			Conversation: conversation,
-			Theme:        askSchema.ThemeContext,
+			Conversation:      conversation,
+			AdditionalContext: askSchema.AdditionalContext,
 		})
 		if err != nil {
 			return c.Write(map[string]string{"error": "Failed to marshal request"})
