@@ -77,11 +77,13 @@ func (s *Service) SendMessage(ctx context.Context, input string) ([]string, erro
 		return nil, fmt.Errorf("model is not initialized")
 	}
 
-	fmt.Println("Recieved input: ", input)
+	fmt.Println("\nRecieved input: \n", input)
 
 	session := s.model.StartChat()
 
-	fmt.Println("Sending request to genai: ", input)
+	fmt.Printf("\nSending request to genai: %v", input)
+
+	fmt.Print("\n")
 
 	resp, err := session.SendMessage(ctx, genai.Text(input))
 	if err != nil {
@@ -113,5 +115,6 @@ func (s *Service) Close() error {
 	if s.client == nil {
 		return fmt.Errorf("client is not initialized")
 	}
+	fmt.Println("Closing GenAI client")
 	return s.client.Close()
 }

@@ -80,19 +80,19 @@ func main() {
 	}
 
 	// Start health check goroutine
-	go func() {
-		ticker := time.NewTicker(30 * time.Second)
-		client := &http.Client{}
-		for range ticker.C {
-			apiURL := os.Getenv("STAY_ALIVE_API_URL")
-			_, err := client.Get(fmt.Sprintf("%s/healthcheck", apiURL))
-			if err != nil {
-				logger.Errorf("health check failed: %v", err)
-			} else {
-				logger.Infof("health check passed")
-			}
-		}
-	}()
+	// go func() {
+	// 	ticker := time.NewTicker(30 * time.Second)
+	// 	client := &http.Client{}
+	// 	for range ticker.C {
+	// 		apiURL := os.Getenv("STAY_ALIVE_API_URL")
+	// 		_, err := client.Get(fmt.Sprintf("%s/healthcheck", apiURL))
+	// 		if err != nil {
+	// 			logger.Errorf("health check failed: %v", err)
+	// 		} else {
+	// 			logger.Infof("health check passed")
+	// 		}
+	// 	}
+	// }()
 
 	// start the HTTP server with graceful shutdown
 	go routing.GracefulShutdown(hs, 10*time.Second, logger.Infof)
@@ -149,7 +149,7 @@ func buildHandler(logger log.Logger, cfg *config.Config) http.Handler {
 
 	rg := router.Group("/v1")
 
-	authHandler := auth.Handler(cfg.JWTSigningKey)
+	// authHandler := auth.Handler(cfg.JWTSigningKey)
 
 	// album.RegisterHandlers(rg.Group(""),
 	// 	album.NewService(album.NewRepository(db, logger), logger),
@@ -163,7 +163,7 @@ func buildHandler(logger log.Logger, cfg *config.Config) http.Handler {
 
 	gemini.RegisterHandlers(rg.Group(""),
 		gemini.NewService(context.Background(), genaicfg),
-		authHandler,
+		// authHandler,
 	)
 
 	// genaiService, err := gemini.NewService(context.Background(), genaicfg)
