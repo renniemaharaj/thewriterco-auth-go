@@ -20,6 +20,7 @@ import (
 func RegisterHandlers(r *routing.RouteGroup, service *Service) {
 	r.Post("/ask", handleAsk(service))
 	r.Post("/find", handleFind(service))
+	r.Post("/genealogy", handleGenealogy(service))
 
 }
 
@@ -202,6 +203,60 @@ func handleFind(service *Service) routing.Handler {
 		}
 
 		// Call the service to find relevant Bible verses.
+		resp, err := service.SendMessage(context.Background(), prompt)
+		if err != nil {
+			return c.Write(map[string]string{"error": err.Error()})
+		}
+
+		dataObjects, err := ParseResponse(strings.Join(resp, "\n"))
+		if err != nil {
+			return c.Write(map[string]string{"error": err.Error()})
+		}
+
+		// Convert dataObjects to JSON string
+		jsonStr, err := json.Marshal(dataObjects)
+		if err != nil {
+			return c.Write(map[string]string{"error": "Failed to serialize response"})
+		}
+		return c.Write(map[string]interface{}{"response": string(jsonStr)})
+	}
+}
+
+// handleGenealogy handles requests for the /genealogy endpoint.
+func handleGenealogy(service *Service) routing.Handler {
+
+	return func(c *routing.Context) error {
+		var request struct {
+			Message string `json:"message"`
+		}
+		if err := c.Read(&request); err != nil {
+			return c.Write(map[string]string{"error": "Invalid request"})
+		}
+
+		// Define a custom prompt to construct a genealogy tree.
+		prompt := fmt.Sprintf(`
+		{
+		"specializedTask": "-@escapeMarkup Construct a genealogy tree of depth 10 generations",
+		"responseSchema": {
+			"personSchema": {
+			"name": "string",
+			"gender": "string (male or female)",
+			"spouse": {
+				"name": "string",
+				"gender": "string (male or female)"
+			},
+			"parents": "array of personSchema objects of depth 10 generations",
+			}
+		},
+		"personOfInterest": "%s"
+		}
+		`, request.Message)
+
+		if request.Message == "" {
+			return c.Write(map[string]string{"error": "Query is required."})
+		}
+
+		// Call the service to construct a genealogy tree.
 		resp, err := service.SendMessage(context.Background(), prompt)
 		if err != nil {
 			return c.Write(map[string]string{"error": err.Error()})

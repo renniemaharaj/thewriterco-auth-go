@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	// "os"
-	"strings"
 
 	"github.com/google/generative-ai-go/genai"
 	// "github.com/qiangxue/go-rest-api/internal/gemini"
@@ -77,13 +77,13 @@ func (s *Service) SendMessage(ctx context.Context, input string) ([]string, erro
 		return nil, fmt.Errorf("model is not initialized")
 	}
 
-	fmt.Println("\nRecieved input: \n", input)
+	// fmt.Println("\nRecieved input: \n", input)
+	log.Println("Recieved request: \n", input)
 
 	session := s.model.StartChat()
 
-	fmt.Printf("\nSending request to genai: %v", input)
-
-	fmt.Print("\n")
+	// fmt.Printf("\nSending request to genai: %v", input)
+	log.Println("Sending request to genai")
 
 	resp, err := session.SendMessage(ctx, genai.Text(input))
 	if err != nil {
@@ -105,7 +105,8 @@ func (s *Service) SendMessage(ctx context.Context, input string) ([]string, erro
 		}
 	}
 
-	fmt.Println("Recieved response from model: ", strings.Join(messages, "\n"))
+	// fmt.Println("Recieved response from model: ", strings.Join(messages, "\n"))
+	log.Println("Recieved response from model: ", strings.Join(messages, "\n"))
 
 	return messages, nil
 }
@@ -115,6 +116,6 @@ func (s *Service) Close() error {
 	if s.client == nil {
 		return fmt.Errorf("client is not initialized")
 	}
-	fmt.Println("Closing GenAI client")
+	log.Println("Closing GenAI client")
 	return s.client.Close()
 }

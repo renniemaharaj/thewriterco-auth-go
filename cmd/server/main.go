@@ -85,6 +85,9 @@ func main() {
 		client := &http.Client{}
 		for range ticker.C {
 			apiURL := os.Getenv("STAY_ALIVE_API_URL")
+			if apiURL == "" {
+				return
+			}
 			_, err := client.Get(fmt.Sprintf("%s/healthcheck", apiURL))
 			if err != nil {
 				logger.Errorf("health check failed: %v", err)
@@ -115,8 +118,7 @@ func buildHandler(logger log.Logger, cfg *config.Config) http.Handler {
 		"thewriterco.pages.dev",
 	}
 
-	// 10 requests per 60 seconds → 1 request every 6 seconds
-	rl := middleware.NewRateLimiter(rate.Every(6*time.Second), 10)
+	rl := middleware.NewRateLimiter(rate.Every(10*time.Second), 2)
 
 	// GET,POST,PUT,DELETE,OPTIONS
 

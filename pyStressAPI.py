@@ -5,13 +5,15 @@ import random
 
 # Configuration
 API_URL = "http://localhost:3001/v1/ask"
-TOTAL_REQUESTS = 100  # Total requests to send
-CONCURRENT_REQUESTS = 10  # Number of concurrent threads
+# API_URL = "https://thewriterco-auth-go.onrender.com/v1/ask"  # Replace with your API endpoint
+TOTAL_REQUESTS = 20  # Total requests to send
+CONCURRENT_REQUESTS = 1  # Number of concurrent threads
 MAX_RETRIES = 3  # Number of times to retry a request if rate-limited
 
 # Sample request payload (adjust according to your API needs)
-payload = {"question": "What is AI?"}
-headers = {"Content-Type": "application/json"}
+payload = "{\"message\":{\"conversation\":\"koKmc2VuZGVyokFJp2NvbnRlbnTZKEhpISDwn5mPIEhvdyBtYXkgSSBiZSBvZiBzZXJ2aWNlIHRvIHlvdT+CpnNlbmRlcqRVc2Vyp2NvbnRlbnSpSGVsbG8gQUkh\",\"additionalContext\":[\"-@here Note user's theme for appropriate styling: dark mode\",\"-@here Note user's current book state for your knowledge: Bible 1:1\",\"-@here Note user's local time for context: 1/31/2025, 2:59:49 PM\",\"-@here Note user's current date for context: Fri Jan 31 2025\"]}}"
+
+# headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
 # Function to send a request with retry mechanism for 429 errors
 def send_request(session, request_id):
@@ -19,21 +21,23 @@ def send_request(session, request_id):
     while retries <= MAX_RETRIES:
         try:
             start_time = time.time()
-            response = session.post(API_URL, json=payload, headers=headers)
+            response = session.post(API_URL, data=payload)
             end_time = time.time()
-            
+
             latency = end_time - start_time
+            response_text = response.text
 
             if response.status_code == 200:
-                return (request_id, response.status_code, latency)
+                return (request_id, response.status_code, latency, response_text)
 
             elif response.status_code == 429:
                 retry_delay = 2 ** retries + random.uniform(0, 0.5)  # Exponential backoff with jitter
+                time.sleep(30)  # Wait for 30 seconds before retrying
                 print(f"⚠️ Request {request_id} rate limited (429). Retrying in {retry_delay:.2f} seconds...")
-                time.sleep(retry_delay)
+                time.sleep(30)
                 retries += 1
             else:
-                return (request_id, response.status_code, latency, response.text)
+                return (request_id, response.status_code, latency, response_text)
 
         except requests.exceptions.RequestException as e:
             return (request_id, "FAILED", 0, str(e))
@@ -60,6 +64,7 @@ def stress_test():
                 latencies.append(result[2])
                 total_latency += result[2]
                 print(f"✅ Request {request_id} succeeded in {result[2]:.2f} seconds")
+                print(f"🔹 Response: {result[3]}")  # Print response text
             elif result[1] == 429:
                 rate_limited_count += 1
                 print(f"🚫 Request {request_id} exceeded rate limit after retries.")
