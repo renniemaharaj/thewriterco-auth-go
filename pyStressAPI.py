@@ -32,9 +32,9 @@ def send_request(session, request_id):
 
             elif response.status_code == 429:
                 retry_delay = 2 ** retries + random.uniform(0, 0.5)  # Exponential backoff with jitter
-                time.sleep(30)  # Wait for 30 seconds before retrying
+                time.sleep(1)  # Wait for 30 seconds before retrying
                 print(f"⚠️ Request {request_id} rate limited (429). Retrying in {retry_delay:.2f} seconds...")
-                time.sleep(30)
+                time.sleep(1)
                 retries += 1
             else:
                 return (request_id, response.status_code, latency, response_text)
