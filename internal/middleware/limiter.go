@@ -123,7 +123,7 @@ func RateLimitMiddleware(rl *RateLimiter) routing.Handler {
 
 				log.Println("🚫 IP", ip, "block reinstated due to repeated requests")
 				return c.WriteWithStatus(map[string]string{
-					"error":       "Too many requests",
+					"response":    "Hold reinstated, retry after 30 seconds",
 					"retry-after": rl.blockedDuration.String(),
 				}, http.StatusTooManyRequests)
 			}
@@ -138,7 +138,7 @@ func RateLimitMiddleware(rl *RateLimiter) routing.Handler {
 
 			log.Println("🚫 IP", ip, "blocked due to rate limiting")
 			c.WriteWithStatus(map[string]string{
-				"error":       "Too many requests",
+				"response":    "Too many requests, retry after 30 seconds",
 				"retry-after": rl.blockedDuration.String(),
 			}, http.StatusTooManyRequests)
 			c.Abort() // 🔥 Prevents further execution
