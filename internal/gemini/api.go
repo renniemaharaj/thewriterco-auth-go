@@ -104,11 +104,41 @@ func handleAsk(service *Service) routing.Handler {
 			return c.Write(map[string]string{"response": "Invalid Base64 encoding"})
 		}
 
-		var conversation []Exchange
-		if err := msgpack.Unmarshal(msgPackData, &conversation); err != nil {
-			log.Printf("Failed to parse MessagePack: %v", err)
-			return c.Write(map[string]string{"response": "Invalid MessagePack format"})
+		// First, unmarshal into an interface{} to inspect structure
+		var intermediate interface{}
+		if err := msgpack.Unmarshal(msgPackData, &intermediate); err != nil {
+			log.Printf("Failed to parse MessagePack (raw output): %v", err)
+			return c.Write(map[string]string{"error": "Invalid MessagePack format"})
 		}
+
+		// ✅ Log the raw decoded structure
+		// log.Printf("Raw decoded MessagePack output: %+v", intermediate)
+
+		// Ensure correct type conversion
+		var conversation []Exchange
+		if arr, ok := intermediate.([]interface{}); ok {
+			conversation = make([]Exchange, len(arr))
+			for i, v := range arr {
+				if obj, ok := v.(map[string]interface{}); ok {
+					conversation[i] = Exchange{
+						Sender:  obj["sender"].(string),
+						Content: obj["content"].(string),
+					}
+				}
+			}
+		} else {
+			log.Printf("Unexpected MessagePack structure: %T", intermediate)
+			return c.Write(map[string]string{"error": "Unexpected data format"})
+		}
+
+		// ✅ Log successfully parsed conversation
+		// log.Printf("Parsed Conversation: %+v", conversation)
+
+		// var conversation []Exchange
+		// if err := msgpack.Unmarshal(msgPackData, &conversation); err != nil {
+		// 	log.Printf("Failed to parse MessagePack: %v", err)
+		// 	return c.Write(map[string]string{"response": "Invalid MessagePack format"})
+		// }
 
 		jsonBytes, err := json.Marshal(AskSchema{
 			Conversation:      conversation,
