@@ -45,7 +45,7 @@ func NewRateLimiter(r rate.Limit, b int) *RateLimiter {
 		blockedVisitors: make(map[string]time.Time),
 		r:               r,
 		b:               b,
-		blockedDuration: 30 * time.Second,
+		blockedDuration: 15 * time.Second,
 	}
 
 	// Start a background cleanup routine
