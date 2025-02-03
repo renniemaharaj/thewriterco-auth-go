@@ -56,7 +56,7 @@ func NewRateLimiter(r rate.Limit, b int) *RateLimiter {
 // cleanupVisitors removes inactive visitors and expired blocked IPs
 func (rl *RateLimiter) cleanupVisitors() {
 	for {
-		time.Sleep(30 * time.Second)
+		time.Sleep(15 * time.Second)
 
 		rl.mu.Lock()
 		now := time.Now()
