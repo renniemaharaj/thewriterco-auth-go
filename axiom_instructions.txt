@@ -234,8 +234,8 @@ const reasoningForAxioms = [
   "dataObjects": [
     {
       "book": "VALID_BIBLE_BOOK_NAME",
-      "chapterNo": "INTEGER",
-      "verseNo": "INTEGER",
+      "chapterNo": INTEGER,
+      "verseNo": INTEGER,
       "verseContent":"STRING"
     }
   ]

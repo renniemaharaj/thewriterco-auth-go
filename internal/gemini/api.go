@@ -155,7 +155,7 @@ func handleAsk(service *Service) routing.Handler {
 
 		parsedResponse, err := ParseResponse(strings.Join(resp, "\n"))
 		if err != nil {
-			return c.Write(map[string]string{"response": "Failed to parse response"})
+			return c.Write(map[string]string{"response": err.Error()})
 		}
 
 		responseJSON, err := json.Marshal(parsedResponse)
@@ -211,8 +211,8 @@ func handleFind(service *Service) routing.Handler {
 			"responseSchema": [
 				{
 					"book": "VALID_BIBLE_BOOK_NAME",
-					"chapterNo": "INTEGER",
-					"verseNo": "INTEGER",
+					"chapterNo": INTEGER,
+					"verseNo": INTEGER,
 					"verseContent": "STRING"
 				}
 			],
