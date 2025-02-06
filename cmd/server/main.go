@@ -139,7 +139,7 @@ func buildHandler(logger log.Logger, cfg *config.Config) http.Handler {
 	// Register GenAI service
 	genaicfg := gemini.Config{
 		APIKey:           os.Getenv("GEMINI_API_KEY"),
-		ModelName:        "gemini-2.0-flash-exp",
+		ModelName:        "gemini-2.0-pro-exp-02-05",
 		Temperature:      1.0,
 		TopK:             40,
 		TopP:             0.95,
