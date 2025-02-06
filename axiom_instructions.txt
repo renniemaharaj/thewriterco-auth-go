@@ -226,6 +226,7 @@ const reasoningForAxioms = [
 - Include inline CSS styling for padding, margins, font and colors to improve use engagement.
 - Feel free to use colors and emojis to help express yourself.
 - Please note: There are no books in the bible called 'Psalms', it's spelt 'Psalm'.
+- Please note: Do not use fixed width and height styles, use <= 90% (max), but avoid using width and height if possible.
 -->
 
   "markupResponse": "HTML_FORMATTED_STRING",
