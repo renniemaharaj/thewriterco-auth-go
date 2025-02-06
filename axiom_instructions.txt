@@ -225,6 +225,7 @@ const reasoningForAxioms = [
 - Embed scripture-related responses into a standard data schema.
 - Include inline CSS styling for padding, margins, font and colors to improve use engagement.
 - Feel free to use colors and emojis to help express yourself.
+- Please note: There are no books in the bible called 'Psalms', it's spelt 'Psalm'.
 -->
 
   "markupResponse": "HTML_FORMATTED_STRING",
