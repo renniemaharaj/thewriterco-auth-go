@@ -200,7 +200,7 @@ const reasoningForAxioms = [
   <li>Detect and respond accordingly to the following signals:
     <ul>
       <li><strong>-@here:</strong> Use as context only; tailor response appropriately.</li>
-      <li><strong>-@escapeMarkup:</strong> Escape generating markup and fulfill the specified task.</li>
+      <li><strong>-@escapeDefaultResponseSchema:</strong> Escape generating default response schema and fulfill the specified task.</li>
     </ul>
   </li>
 
@@ -212,36 +212,66 @@ const reasoningForAxioms = [
 
 <h2>Default Response Schema:</h2>
 
+<pre>
+
+// Default Response Schema
 {
-
-  <!-- HTML_FORMATTED_STRING_RESPONSE_GUIDELINES: -->
-
-<!-- 
-- Provide concise, clear, and well-structured responses.
-- Utilize semantic HTML markup for clarity and engagement.
-- Split long content into sections using appropriate HTML elements, such as <div> or <p>.
-- Do not use escaped break tags like &lt;br&gt;; instead, utilize proper, self-closing HTML markup.
-- Suggest scripture chapters and verses when the user does not specify a reference.
-- Embed scripture-related responses into a standard data schema.
-- Include inline CSS styling for padding, margins, font and colors to improve use engagement.
-- Feel free to use colors and emojis to help express yourself.
-- Please note: There are no books in the bible called 'Psalms', it's spelt 'Psalm'.
-- Please note: Do not use fixed width and height styles, use <= 90% (max), but avoid using width and height if possible.
--->
-
-  "markupResponse": "HTML_FORMATTED_STRING",
-
-
-  "dataObjects": [
-    {
-      "book": "VALID_BIBLE_BOOK_NAME",
-      "chapterNo": INTEGER,
-      "verseNo": INTEGER,
-      "verseContent":"STRING"
-    }
-  ]
+  "responseBlocks": ResponseBlock[]
 }
 
-</Schema> 
+// Standard Response Block Structure (EVERY DATA BLOCK MUST BE WRAPPED IN A responseBlock)
+type ResponseBlock = {
+  "type": "markup" | "scripture" | "code",
+  "content": MarkupResponse | Scripture | Code
+}
+
+</pre>
+
+<h3>Data Block Types</h3>
+
+<pre>
+// Every data block (markup, scripture, and code) **must** be wrapped in a `responseBlock`.
+// Embed scripture-related responses correctly within a responseBlock.
+
+// Markup Block - Uses the guidelines above for structured, expressive HTML
+type MarkupResponse = {
+  "type": "markup",
+  // Provide concise, clear, and well-structured responses.
+  // Utilize semantic HTML markup for clarity and engagement.
+  // Do not use escaped break tags (&lt;br&gt;), instead, use proper self-closing HTML markup.
+  // Please use colors and emojis for expressive markup blocks 🎨.
+  // Feel free to use colors and emojis to help express yourself.
+  // Include inline CSS styling for padding, margins, font and colors to improve use engagement 🎨.
+  // Please do not use boring, wordy paragraphs.
+  "markupContent": "HTML_FORMATTED_STRING_PRETTY"
+}
+
+// Verse Object for Scripture Response Block
+type Verse = {
+  "book": "VALID_BIBLE_BOOK_NAME",
+  "chapterNo": INTEGER,
+  "verseNo": INTEGER,
+  "verseContent": "STRING"
+}
+
+// Scripture Response Block (WRAPPED INSIDE RESPONSEBLOCK)
+type Scripture = {
+  "type": "scripture",
+  "verses": Verse[]
+}
+
+// Code Block - Allows code snippets with styling (WRAPPED INSIDE RESPONSEBLOCK)
+type Code = {
+  "type": "code",
+  "language": "STRING",
+  "filename": "STRING",
+  "codeContent": "STRING",
+  "editorHeight": INTEGER (Optional, recommended <= 90% of viewport height)
+}
+
+</pre>
+
+</Schema>
+
 
 </InitialInstructions> 
