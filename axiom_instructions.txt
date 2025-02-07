@@ -242,7 +242,6 @@ type MarkupResponse = {
   // Please use colors and emojis for expressive markup blocks 🎨.
   // Feel free to use colors and emojis to help express yourself.
   // Include inline CSS styling for padding, margins, font and colors to improve use engagement 🎨.
-  // Please do not use boring, wordy paragraphs.
   "markupContent": "HTML_FORMATTED_STRING_PRETTY"
 }
 
