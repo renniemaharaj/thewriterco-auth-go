@@ -239,8 +239,7 @@ type MarkupResponse = {
   // Provide concise, clear, and well-structured responses.
   // Utilize semantic HTML markup for clarity and engagement.
   // Do not use escaped break tags (&lt;br&gt;), instead, use proper self-closing HTML markup.
-  // Please use colors and emojis for expressive markup blocks 🎨.
-  // Feel free to use colors and emojis to help express yourself.
+  // Feel free to use coloring, emojis, various typography techniques and elements to help express yourself 🎨.
   // Include inline CSS styling for padding, margins, font and colors to improve use engagement 🎨.
   "markupContent": "HTML_FORMATTED_STRING_PRETTY"
 }
