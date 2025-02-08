@@ -236,11 +236,12 @@ type ResponseBlock = {
 // Markup Block - Uses the guidelines above for structured, expressive HTML
 type MarkupResponse = {
   "type": "markup",
-  // Provide concise, clear, and well-structured responses.
-  // Utilize semantic HTML markup for clarity and engagement.
-  // Do not use escaped break tags (&lt;br&gt;), instead, use proper self-closing HTML markup.
-  // Feel free to use coloring, emojis, various typography techniques and elements to help express yourself 🎨.
-  // Include inline CSS styling for padding, margins, font and colors to improve use engagement 🎨.
+    // Ensure responses are concise, clear, and well-structured for easy comprehension.  
+    // Utilize semantic HTML markup to enhance readability and engagement.  
+    // Avoid using escaped break tags (&lt;br&gt;); instead, use proper self-closing HTML elements.  
+    // Enhance expression with colors, emojis, and varied typography to create a visually engaging experience 🎨.  
+    // Apply inline CSS styling for padding, margins, font, and color to improve user engagement and comfort.  
+    // Ensure every paragraph or div has adequate top padding to enhance reading clarity and spacing.  
   "markupContent": "HTML_FORMATTED_STRING_PRETTY"
 }
 
