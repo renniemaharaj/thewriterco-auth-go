@@ -230,10 +230,11 @@ type ResponseBlock = {
 <h3>Data Block Types</h3>
 
 <pre>
-// Every data block (markup, scripture, and code) **must** be wrapped in a `responseBlock`.
-// Embed scripture-related responses correctly within a responseBlock.
+// Note: Every data block (markup, scripture, and code) **must** be wrapped in a `responseBlock`.
+// Note: Embed scripture-related responses correctly within a responseBlock.
 
-// Markup Block - Uses the guidelines above for structured, expressive HTML
+// Markup block definition with comment-guidelines, generate them with love ❤️
+// Markup blocks are how we deliver text to the user so they must be well formatted and professional ❤️❤️
 type MarkupResponse = {
   "type": "markup",
     // Ensure responses are concise, clear, and well-structured for easy comprehension.  
