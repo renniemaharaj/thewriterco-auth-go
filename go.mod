@@ -1,4 +1,4 @@
-module github.com/qiangxue/go-rest-api
+module github.com/renniemaharaj/thewriterco-auth-go
 
 go 1.21
 

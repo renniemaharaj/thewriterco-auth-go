@@ -20,69 +20,71 @@ func RegisterHandlers(r *routing.RouteGroup, service *Service) {
 
 }
 
-// Struct representing the Scripture schema
-// type Scripture struct {
-// 	Book         string `json:"book"`
-// 	ChapterNo    int    `json:"chapterNo"`
-// 	VerseNo      int    `json:"verseNo"`
-// 	VerseContent string `json:"verseContent"`
-// }
-
-// Struct representing the Code schema
-// type Code struct {
-// 	Language    string `json:"language"`
-// 	Filename    string `json:"filename"`
-// 	CodeContent string `json:"codeContent"`
-// }
-
-// Struct representing the overall response schema
-// type ResponseSchema struct {
-// 	MarkupResponse string      `json:"markupResponse"` // For the HTML markup as a string
-// 	DataObjects    []Scripture `json:"dataObjects"`    // Array of Scripture structs
-// 	Code           []Code      `json:"codeResponse"`   // Array of Code structs
-// }
-
-type AskSchema struct {
-	Conversation      []Exchange `json:"conversation"`
-	AdditionalContext []string   `json:"additionalContext"`
-}
-
-type Exchange struct {
-	Sender  string `json:"sender"`
-	Content string `json:"content"`
-}
-
 // RemoveCodeFences removes ```json from the start and ``` from the end of the input string.
 func RemoveCodeFences(input string) string {
 	const codeFenceStart = "```json"
 	const codeFenceEnd = "```"
 
-	// Trim the starting "```json"
+	// trim the starting "```json"
 	input = strings.TrimPrefix(input, codeFenceStart)
 
-	// Trim any leading/trailing whitespace or newlines to better detect the ending code fence
+	// trim any leading/trailing whitespace or newlines to better detect the ending code fence
 	input = strings.TrimSpace(input)
 
-	// Trim the ending "```"
+	// trim the ending "```"
 	input = strings.TrimSuffix(input, codeFenceEnd)
 
-	// Trim excess whitespace again
+	// trim excess whitespace again
 	return strings.TrimSpace(input)
 }
 
-// Function to parse JSON into the ResponseSchema struct
+// function to parse JSON into the ResponseSchema struct
 func ParseResponse(jsonData string) (interface{}, error) {
-	// Create an empty ResponseSchema instance
-	// var response ResponseSchema
+	// create an empty ResponseSchema instance
 	var response interface{}
 
-	// Unmarshal the input JSON into the struct
+	// unmarshal the input JSON into the struct
 	err := json.Unmarshal([]byte(RemoveCodeFences(jsonData)), &response)
 	if err != nil {
 		return nil, err
 	}
 
 	return &response, nil
+}
+
+func RawToAskSchema(raw *RawAskSchema) (*AskSchema, error) {
+	// return
+	msgPackData, err := base64.StdEncoding.DecodeString(raw.Conversation)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode Base64: %w", err)
+	}
+
+	var intermediate interface{}
+	if err := msgpack.Unmarshal(msgPackData, &intermediate); err != nil {
+		return nil, fmt.Errorf("failed to parse MessagePack (raw output): %w", err)
+	}
+
+	// Ensure correct type conversion
+	var conversation []Exchange
+	arr, ok := intermediate.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected MessagePack structure: %T", intermediate)
+	}
+
+	conversation = make([]Exchange, len(arr))
+	for i, v := range arr {
+		if obj, ok := v.(map[string]interface{}); ok {
+			conversation[i] = Exchange{
+				Sender:  obj["sender"].(string),
+				Content: obj["content"].(string),
+			}
+		}
+	}
+
+	return &AskSchema{
+		Conversation:      conversation,
+		AdditionalContext: raw.AdditionalContext,
+	}, nil
 }
 
 // handleAsk handles requests for the /ask endpoint.
@@ -97,62 +99,31 @@ func handleAsk(service *Service) routing.Handler {
 			return c.Write(map[string]string{"response": "Invalid request format"})
 		}
 
-		var askSchema struct {
-			Conversation      string   `json:"conversation"`
-			AdditionalContext []string `json:"additionalContext"`
-		}
+		var askSchema RawAskSchema
 
 		if err := json.Unmarshal([]byte(rawRequest.Message), &askSchema); err != nil {
 			log.Printf("Failed to parse JSON string: %v", err)
 			return c.Write(map[string]string{"response": "Invalid JSON format"})
 		}
 
-		msgPackData, err := base64.StdEncoding.DecodeString(askSchema.Conversation)
+		// convert the RawAskSchema to AskSchema
+		treatedSchema, err := RawToAskSchema(&askSchema)
+
 		if err != nil {
-			log.Printf("Failed to decode Base64: %v", err)
-			return c.Write(map[string]string{"response": "Invalid Base64 encoding"})
+			log.Printf("Failed to process AskSchema: %v", err)
+			return c.Write(map[string]string{"response": "Failed to process request"})
 		}
 
-		// First, unmarshal into an interface{} to inspect structure
-		// IMPORTANT NOTE: WE MUST USE INTERFACE FOR UMARSHELLING MESSAGEPACK
-		var intermediate interface{}
-		if err := msgpack.Unmarshal(msgPackData, &intermediate); err != nil {
-			log.Printf("Failed to parse MessagePack (raw output): %v", err)
-			return c.Write(map[string]string{"error": "Invalid MessagePack format"})
-		}
+		// marshal the AskSchema struct into bytes
+		jsonBytes, err := json.Marshal(treatedSchema)
 
-		// ✅ Log the raw decoded structure
-		// log.Printf("Raw decoded MessagePack output: %+v", intermediate)
-
-		// Ensure correct type conversion
-		var conversation []Exchange
-		if arr, ok := intermediate.([]interface{}); ok {
-			conversation = make([]Exchange, len(arr))
-			for i, v := range arr {
-				if obj, ok := v.(map[string]interface{}); ok {
-					conversation[i] = Exchange{
-						Sender:  obj["sender"].(string),
-						Content: obj["content"].(string),
-					}
-				}
-			}
-		} else {
-			log.Printf("Unexpected MessagePack structure: %T", intermediate)
-			return c.Write(map[string]string{"error": "Unexpected data format"})
-		}
-
-		// ✅ Log successfully parsed conversation
-		// log.Printf("Parsed Conversation: %+v", conversation)
-
-		jsonBytes, err := json.Marshal(AskSchema{
-			Conversation:      conversation,
-			AdditionalContext: askSchema.AdditionalContext,
-		})
 		if err != nil {
 			return c.Write(map[string]string{"response": "Failed to marshal request"})
 		}
 
+		// call the service with jsonBytes string cast to process the request
 		resp, err := service.SendMessage(context.Background(), string(jsonBytes))
+
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
 		}
@@ -166,6 +137,7 @@ func handleAsk(service *Service) routing.Handler {
 		if err != nil {
 			return c.Write(map[string]string{"response": "Failed to marshal response"})
 		}
+
 		return c.Write(map[string]interface{}{"response": string(responseJSON)})
 	}
 }
@@ -186,7 +158,7 @@ func handleDataRequest(service *Service, promptGenerator func(string) string) ro
 
 		prompt := promptGenerator(request.Message)
 
-		// Call the service to process the request.
+		// call the service to process the request.
 		resp, err := service.SendMessage(context.Background(), prompt)
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
@@ -197,7 +169,7 @@ func handleDataRequest(service *Service, promptGenerator func(string) string) ro
 			return c.Write(map[string]string{"response": err.Error()})
 		}
 
-		// Convert dataObjects to JSON string
+		// convert dataObjects to JSON string
 		jsonStr, err := json.Marshal(dataObjects)
 		if err != nil {
 			return c.Write(map[string]string{"response": "Failed to serialize response"})

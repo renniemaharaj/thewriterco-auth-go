@@ -2,9 +2,10 @@ package album
 
 import (
 	"context"
-	"github.com/qiangxue/go-rest-api/internal/entity"
-	"github.com/qiangxue/go-rest-api/pkg/dbcontext"
-	"github.com/qiangxue/go-rest-api/pkg/log"
+
+	"github.com/renniemaharaj/thewriterco-auth-go/internal/entity"
+	"github.com/renniemaharaj/thewriterco-auth-go/pkg/dbcontext"
+	"github.com/renniemaharaj/thewriterco-auth-go/pkg/log"
 )
 
 // Repository encapsulates the logic to access albums from the data source.

@@ -4,12 +4,12 @@ import (
 	// "context"
 	"io"
 	"os"
-	// "github.com/qiangxue/go-rest-api/pkg/log"
+	// "github.com/renniemaharaj/thewriterco-auth-go/pkg/log"
 )
 
 func GetAxiomsAndInstructions() string {
 	// logger := log.New().With(context.TODO(), "version")
-	instrFile, err := os.Open("axiom_instructions.txt")
+	instrFile, err := os.Open("instructions.txt")
 	if err != nil {
 		// logger.Error("failed to open axiom instructions file")
 		os.Exit(-1)

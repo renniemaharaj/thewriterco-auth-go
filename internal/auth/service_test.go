@@ -2,11 +2,12 @@ package auth
 
 import (
 	"context"
-	"github.com/qiangxue/go-rest-api/internal/entity"
-	"github.com/qiangxue/go-rest-api/internal/errors"
-	"github.com/qiangxue/go-rest-api/pkg/log"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/renniemaharaj/thewriterco-auth-go/internal/entity"
+	"github.com/renniemaharaj/thewriterco-auth-go/internal/errors"
+	"github.com/renniemaharaj/thewriterco-auth-go/pkg/log"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_service_Authenticate(t *testing.T) {

@@ -1,9 +1,9 @@
 # The Writer Company Backend Implementation in Go (thewriterco-auth-go)
 
-[![GoDoc](https://godoc.org/github.com/qiangxue/go-rest-api?status.png)](http://godoc.org/github.com/qiangxue/go-rest-api)
-[![Build Status](https://github.com/qiangxue/go-rest-api/workflows/build/badge.svg)](https://github.com/qiangxue/go-rest-api/actions?query=workflow%3Abuild)
+[![GoDoc](https://godoc.org/github.com/renniemaharaj/thewriterco-auth-go?status.png)](http://godoc.org/github.com/renniemaharaj/thewriterco-auth-go)
+[![Build Status](https://github.com/renniemaharaj/thewriterco-auth-go/workflows/build/badge.svg)](https://github.com/renniemaharaj/thewriterco-auth-go/actions?query=workflow%3Abuild)
 [![Code Coverage](https://codecov.io/gh/qiangxue/go-rest-api/branch/master/graph/badge.svg)](https://codecov.io/gh/qiangxue/go-rest-api)
-[![Go Report](https://goreportcard.com/badge/github.com/qiangxue/go-rest-api)](https://goreportcard.com/report/github.com/qiangxue/go-rest-api)
+[![Go Report](https://goreportcard.com/badge/github.com/renniemaharaj/thewriterco-auth-go)](https://goreportcard.com/report/github.com/renniemaharaj/thewriterco-auth-go)
 
 This Go RESTful API starter kit serves as the backbone of The Writer Company's backend implementation. It retains the structure and best practices from the original boilerplate to facilitate a clean, maintainable project for quickly building Go-based RESTful services while aligning with [SOLID principles](https://en.wikipedia.org/wiki/SOLID) and [clean architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html).
 
@@ -18,7 +18,7 @@ Included features:
 • Database migration  
 • Data validation  
 • Full test coverage  
-• Live reloading during development  
+• Live reloading during development
 
 The following Go packages can be replaced with preferred alternatives because their usage is localized and abstracted:
 
@@ -27,7 +27,7 @@ The following Go packages can be replaced with preferred alternatives because th
 • Database migration: [golang-migrate](https://github.com/golang-migrate/migrate)  
 • Data validation: [ozzo-validation](https://github.com/go-ozzo/ozzo-validation)  
 • Logging: [zap](https://github.com/uber-go/zap)  
-• JWT: [jwt-go](https://github.com/dgrijalva/jwt-go)  
+• JWT: [jwt-go](https://github.com/dgrijalva/jwt-go)
 
 ## Getting Started
 
@@ -37,7 +37,7 @@ Also install [Docker 17.05 or above](https://www.docker.com/get-started).
 Try the kit:
 
 ```shell
-git clone https://github.com/qiangxue/go-rest-api.git
+git clone https://github.com/renniemaharaj/thewriterco-auth-go.git
 
 cd go-rest-api
 
@@ -62,7 +62,7 @@ This starts a RESTful API server at http://127.0.0.1:8080 with endpoints:
 • GET /v1/albums/:id  
 • POST /v1/albums  
 • PUT /v1/albums/:id  
-• DELETE /v1/albums/:id  
+• DELETE /v1/albums/:id
 
 Various tests can be performed using cURL or other API tools:
 
@@ -76,7 +76,7 @@ Use the returned JWT:
 curl -X GET -H "Authorization: Bearer ...JWT token here..." http://localhost:8080/v1/albums
 ```
 
-To customize this starter kit for The Writer Company or any other organization, replace `github.com/qiangxue/go-rest-api` with your repository name, for instance `github.com/abc/xyz`.
+To customize this starter kit for The Writer Company or any other organization, replace `github.com/renniemaharaj/thewriterco-auth-go` with your repository name, for instance `github.com/abc/xyz`.
 
 ## Project Layout
 
@@ -108,9 +108,9 @@ This layout follows [Standard Go Project Layout](https://github.com/golang-stand
 
 ### Implementing a New Feature
 
-1. Write the service implementing the business logic (see `internal/album/service.go`).  
-2. Develop the RESTful API exposing that service (see `internal/album/api.go`).  
-3. Implement the repository persisting data (see `internal/album/repository.go`).  
+1. Write the service implementing the business logic (see `internal/album/service.go`).
+2. Develop the RESTful API exposing that service (see `internal/album/api.go`).
+3. Implement the repository persisting data (see `internal/album/repository.go`).
 4. Inject dependencies (see `album.RegisterHandlers()` in `cmd/server/main.go`).
 
 ### Working with DB Transactions

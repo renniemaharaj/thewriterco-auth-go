@@ -2,11 +2,12 @@ package auth
 
 import (
 	"context"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/qiangxue/go-rest-api/internal/entity"
-	"github.com/qiangxue/go-rest-api/internal/errors"
-	"github.com/qiangxue/go-rest-api/pkg/log"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/renniemaharaj/thewriterco-auth-go/internal/entity"
+	"github.com/renniemaharaj/thewriterco-auth-go/internal/errors"
+	"github.com/renniemaharaj/thewriterco-auth-go/pkg/log"
 )
 
 // Service encapsulates the authentication logic.

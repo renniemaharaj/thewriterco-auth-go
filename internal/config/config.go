@@ -5,7 +5,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/qiangxue/go-env"
-	"github.com/qiangxue/go-rest-api/pkg/log"
+	"github.com/renniemaharaj/thewriterco-auth-go/pkg/log"
 	"gopkg.in/yaml.v2"
 )
 

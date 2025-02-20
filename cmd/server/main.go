@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	// "database/sql"
 	"flag"
 	"fmt"
 	"net/http"
@@ -10,32 +9,24 @@ import (
 	"strings"
 	"time"
 
-	// dbx "github.com/go-ozzo/ozzo-dbx"
-	// dbx "github.com/go-ozzo/ozzo-dbx"
 	routing "github.com/go-ozzo/ozzo-routing/v2"
 	"github.com/go-ozzo/ozzo-routing/v2/content"
 	"github.com/go-ozzo/ozzo-routing/v2/cors"
 	_ "github.com/lib/pq"
 	"golang.org/x/time/rate"
 
-	// "golang.org/x/oauth2/authhandler"
+	"github.com/renniemaharaj/thewriterco-auth-go/internal/auth"
+	"github.com/renniemaharaj/thewriterco-auth-go/internal/config"
+	"github.com/renniemaharaj/thewriterco-auth-go/internal/errors"
+	"github.com/renniemaharaj/thewriterco-auth-go/internal/gemini"
+	"github.com/renniemaharaj/thewriterco-auth-go/internal/healthcheck"
+	"github.com/renniemaharaj/thewriterco-auth-go/internal/middleware"
 
-	// "github.com/qiangxue/go-rest-api/internal/album"
-
-	"github.com/qiangxue/go-rest-api/internal/auth"
-	"github.com/qiangxue/go-rest-api/internal/config"
-	"github.com/qiangxue/go-rest-api/internal/errors"
-	"github.com/qiangxue/go-rest-api/internal/gemini"
-	"github.com/qiangxue/go-rest-api/internal/healthcheck"
-	"github.com/qiangxue/go-rest-api/internal/middleware"
-
-	"github.com/qiangxue/go-rest-api/pkg/accesslog"
-	// "github.com/qiangxue/go-rest-api/pkg/dbcontext"
-	"github.com/qiangxue/go-rest-api/pkg/log"
-	// "github.com/qiangxue/go-rest-api/internal/middleware"
+	"github.com/renniemaharaj/thewriterco-auth-go/pkg/accesslog"
+	"github.com/renniemaharaj/thewriterco-auth-go/pkg/log"
 )
 
-// Version indicates the current version of the application.
+// version indicates the current version of the application.
 var Version = "1.0.0"
 
 var flagConfig = flag.String("config", "./config/local.yml", "path to the config file")
@@ -63,10 +54,10 @@ func main() {
 	// }()
 
 	// check the database connection
-	if err != nil {
-		logger.Error(err)
-		os.Exit(-1)
-	}
+	// if err != nil {
+	// 	logger.Error(err)
+	// 	os.Exit(-1)
+	// }
 
 	// set up database connection pool
 	// db.QueryLogFunc = logDBQuery(logger)
@@ -79,15 +70,18 @@ func main() {
 		Handler: buildHandler(logger, cfg),
 	}
 
-	// Start health check goroutine
+	// start health check goroutine
 	go func() {
-		ticker := time.NewTicker(30 * time.Second)
+		ticker := time.NewTicker(time.Minute / 2)
+		defer ticker.Stop()
+
 		client := &http.Client{}
+		apiURL := os.Getenv("STAY_ALIVE_API_URL")
+		if apiURL == "" {
+			return
+		}
+
 		for range ticker.C {
-			apiURL := os.Getenv("STAY_ALIVE_API_URL")
-			if apiURL == "" {
-				return
-			}
 			_, err := client.Get(fmt.Sprintf("%s/healthcheck", apiURL))
 			if err != nil {
 				logger.Errorf("health check failed: %v", err)
@@ -99,7 +93,9 @@ func main() {
 
 	// start the HTTP server with graceful shutdown
 	go routing.GracefulShutdown(hs, 10*time.Second, logger.Infof)
+
 	logger.Infof("server %v is running at %v", Version, address)
+
 	if err := hs.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Error(err)
 		os.Exit(-1)
@@ -110,7 +106,8 @@ func main() {
 // func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.Handler {
 func buildHandler(logger log.Logger, cfg *config.Config) http.Handler {
 	router := routing.New()
-	// Define allowed origins
+
+	// define allowed origins
 	allowedOrigins := []string{
 		"http://localhost:5173",
 		"https://www.thewriterco.com",
@@ -132,11 +129,11 @@ func buildHandler(logger log.Logger, cfg *config.Config) http.Handler {
 			AllowMethods:     "POST",
 			AllowHeaders:     "Authorization,Content-Type",
 			AllowCredentials: true,
-			MaxAge:           3600, // seconds
+			MaxAge:           time.Hour,
 		}),
 	)
 
-	// Register GenAI service
+	// register GenAI service
 	genaicfg := gemini.Config{
 		APIKey:           os.Getenv("GEMINI_API_KEY"),
 		ModelName:        "gemini-2.0-pro-exp-02-05",
@@ -147,8 +144,10 @@ func buildHandler(logger log.Logger, cfg *config.Config) http.Handler {
 		ResponseMIMEType: "text/plain",
 	}
 
+	// register health check
 	healthcheck.RegisterHandlers(router, Version)
 
+	// register routing group for v1 APIs
 	rg := router.Group("/v1")
 
 	// authHandler := auth.Handler(cfg.JWTSigningKey)

@@ -9,8 +9,8 @@ import (
 	// "os"
 
 	"github.com/google/generative-ai-go/genai"
-	// "github.com/qiangxue/go-rest-api/internal/gemini"
-	// "github.com/qiangxue/go-rest-api/pkg/log"
+	// "github.com/renniemaharaj/thewriterco-auth-go/internal/gemini"
+	// "github.com/renniemaharaj/thewriterco-auth-go/pkg/log"
 	"google.golang.org/api/option"
 )
 
