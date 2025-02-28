@@ -87,10 +87,12 @@ func (s *Service) SendMessage(ctx context.Context, input string) ([]string, erro
 
 	resp, err := session.SendMessage(ctx, genai.Text(input))
 	if err != nil {
+		log.Println("Failed to send message: ", err)
 		return nil, fmt.Errorf("failed to send message: %w", err)
 	}
 
 	if len(resp.Candidates) == 0 {
+		log.Println("No candidates returned in response")
 		return nil, fmt.Errorf("no candidates returned in response")
 	}
 
