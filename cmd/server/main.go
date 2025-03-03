@@ -103,7 +103,6 @@ func main() {
 }
 
 // buildHandler sets up the HTTP routing and builds an HTTP handler.
-// func buildHandler(logger log.Logger, db *dbcontext.DB, cfg *config.Config) http.Handler {
 func buildHandler(logger log.Logger, cfg *config.Config) http.Handler {
 	router := routing.New()
 
@@ -133,17 +132,6 @@ func buildHandler(logger log.Logger, cfg *config.Config) http.Handler {
 		}),
 	)
 
-	// register GenAI service
-	genaicfg := gemini.Config{
-		APIKey:           os.Getenv("GEMINI_API_KEY"),
-		ModelName:        "gemini-2.0-pro-exp-02-05",
-		Temperature:      1.0,
-		TopK:             40,
-		TopP:             0.95,
-		MaxOutputTokens:  8192,
-		ResponseMIMEType: "text/plain",
-	}
-
 	// register health check
 	healthcheck.RegisterHandlers(router, Version)
 
@@ -162,17 +150,16 @@ func buildHandler(logger log.Logger, cfg *config.Config) http.Handler {
 		logger,
 	)
 
-	gemini.RegisterHandlers(rg.Group(""),
-		gemini.NewService(context.Background(), genaicfg),
-		// authHandler,
-	)
+	keys, err := gemini.HydrateAPIPool("GEMINI_API_KEYS_POOL")
+	if err != nil {
+		logger.Error(err)
+		os.Exit(-1)
+	}
 
-	// genaiService, err := gemini.NewService(context.Background(), genaicfg)
+	gemini.InitAPIKeys(keys)
 
-	// if err != nil {
-	// 	logger.Error("failed to create GenAI service")
-	// 	os.Exit(-1)
-	// }
+	gemini.RegisterHandlers(rg.Group(""))
+
 	return router
 }
 

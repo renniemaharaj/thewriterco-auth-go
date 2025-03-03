@@ -2,93 +2,24 @@ package gemini
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	routing "github.com/go-ozzo/ozzo-routing/v2"
-	"github.com/vmihailenco/msgpack/v5"
+	"github.com/renniemaharaj/thewriterco-auth-go/pkg/transformer"
 )
 
 // RegisterHandlers registers the routes for the GenAI API.
-func RegisterHandlers(r *routing.RouteGroup, service *Service) {
-	r.Post("/ask", handleAsk(service))
-	r.Post("/find", handleFind(service))
-	r.Post("/genealogy", handleGenealogy(service))
+func RegisterHandlers(r *routing.RouteGroup) {
+	r.Post("/ask", handleAsk())
+	r.Post("/find", handleFind())
+	r.Post("/genealogy", handleGenealogy())
 
-}
-
-// RemoveCodeFences removes ```json from the start and ``` from the end of the input string.
-func RemoveCodeFences(input string) string {
-	const codeFenceStart = "```json"
-	const codeFenceEnd = "```"
-
-	// trim the starting "```json"
-	input = strings.TrimPrefix(input, codeFenceStart)
-
-	// trim any leading/trailing whitespace or newlines to better detect the ending code fence
-	input = strings.TrimSpace(input)
-
-	// trim the ending "```"
-	input = strings.TrimSuffix(input, codeFenceEnd)
-
-	// trim excess whitespace again
-	return strings.TrimSpace(input)
-}
-
-// function to parse JSON into the ResponseSchema struct
-func ParseResponse(jsonData string) (interface{}, error) {
-	// create an empty ResponseSchema instance
-	var response interface{}
-
-	// unmarshal the input JSON into the struct
-	err := json.Unmarshal([]byte(RemoveCodeFences(jsonData)), &response)
-	if err != nil {
-		return nil, err
-	}
-
-	return &response, nil
-}
-
-func RawToAskSchema(raw *RawAskSchema) (*AskSchema, error) {
-	// return
-	msgPackData, err := base64.StdEncoding.DecodeString(raw.Conversation)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode Base64: %w", err)
-	}
-
-	var intermediate interface{}
-	if err := msgpack.Unmarshal(msgPackData, &intermediate); err != nil {
-		return nil, fmt.Errorf("failed to parse MessagePack (raw output): %w", err)
-	}
-
-	// Ensure correct type conversion
-	var conversation []Exchange
-	arr, ok := intermediate.([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("unexpected MessagePack structure: %T", intermediate)
-	}
-
-	conversation = make([]Exchange, len(arr))
-	for i, v := range arr {
-		if obj, ok := v.(map[string]interface{}); ok {
-			conversation[i] = Exchange{
-				Sender:  obj["sender"].(string),
-				Content: obj["content"].(string),
-			}
-		}
-	}
-
-	return &AskSchema{
-		Conversation:      conversation,
-		AdditionalContext: raw.AdditionalContext,
-	}, nil
 }
 
 // handleAsk handles requests for the /ask endpoint.
-func handleAsk(service *Service) routing.Handler {
+func handleAsk() routing.Handler {
 	return func(c *routing.Context) error {
 		var rawRequest struct {
 			Message string `json:"message"`
@@ -99,14 +30,13 @@ func handleAsk(service *Service) routing.Handler {
 			return c.Write(map[string]string{"response": "Invalid request format"})
 		}
 
-		var askSchema RawAskSchema
+		var askSchema transformer.RawAskSchema
 
 		if err := json.Unmarshal([]byte(rawRequest.Message), &askSchema); err != nil {
 			log.Printf("Failed to parse JSON string: %v", err)
 			return c.Write(map[string]string{"response": "Invalid JSON format"})
 		}
 
-		// convert the RawAskSchema to AskSchema
 		treatedSchema, err := RawToAskSchema(&askSchema)
 
 		if err != nil {
@@ -114,21 +44,20 @@ func handleAsk(service *Service) routing.Handler {
 			return c.Write(map[string]string{"response": "Failed to process request"})
 		}
 
-		// marshal the AskSchema struct into bytes
-		jsonBytes, err := json.Marshal(treatedSchema)
-
+		session, cleanup, err := WaitFreeSession(context.Background())
 		if err != nil {
-			return c.Write(map[string]string{"response": "Failed to marshal request"})
+			return c.Write(map[string]string{"response": err.Error()})
 		}
+		defer cleanup()
 
-		// call the service with jsonBytes string cast to process the request
-		resp, err := service.SendMessage(context.Background(), string(jsonBytes))
+		// call the service to process the request.
+		resp, err := session.Ask(context.Background(), treatedSchema)
 
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
 		}
 
-		parsedResponse, err := ParseResponse(strings.Join(resp, "\n"))
+		parsedResponse, err := ParseResponse(*resp)
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
 		}
@@ -138,12 +67,14 @@ func handleAsk(service *Service) routing.Handler {
 			return c.Write(map[string]string{"response": "Failed to marshal response"})
 		}
 
+		log.Printf("Responding to request: %s", responseJSON)
+
 		return c.Write(map[string]interface{}{"response": string(responseJSON)})
 	}
 }
 
 // handleDataRequest is a generic handler for data-object-based endpoints.
-func handleDataRequest(service *Service, promptGenerator func(string) string) routing.Handler {
+func handleDataRequest(promptGenerator func(string) string) routing.Handler {
 	return func(c *routing.Context) error {
 		var request struct {
 			Message string `json:"message"`
@@ -158,18 +89,23 @@ func handleDataRequest(service *Service, promptGenerator func(string) string) ro
 
 		prompt := promptGenerator(request.Message)
 
+		session, cleanup, err := WaitFreeSession(context.Background())
+		if err != nil {
+			return c.Write(map[string]string{"response": err.Error()})
+		}
+		defer cleanup()
+
 		// call the service to process the request.
-		resp, err := service.SendMessage(context.Background(), prompt)
+		resp, err := session.SendMessage(context.Background(), &prompt)
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
 		}
 
-		dataObjects, err := ParseResponse(strings.Join(resp, "\n"))
+		dataObjects, err := ParseResponse(*resp)
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
 		}
 
-		// convert dataObjects to JSON string
 		jsonStr, err := json.Marshal(dataObjects)
 		if err != nil {
 			return c.Write(map[string]string{"response": "Failed to serialize response"})
@@ -179,8 +115,8 @@ func handleDataRequest(service *Service, promptGenerator func(string) string) ro
 }
 
 // handleFind handles requests for the /find endpoint.
-func handleFind(service *Service) routing.Handler {
-	return handleDataRequest(service, func(message string) string {
+func handleFind() routing.Handler {
+	return handleDataRequest(func(message string) string {
 		return fmt.Sprintf(`
 		{
 			"specializedTask": "-@escapeDefaultResponseSchema Locate contextually matching and relevant Bible (KJV) scriptures",
@@ -199,8 +135,8 @@ func handleFind(service *Service) routing.Handler {
 }
 
 // handleGenealogy handles requests for the /genealogy endpoint.
-func handleGenealogy(service *Service) routing.Handler {
-	return handleDataRequest(service, func(message string) string {
+func handleGenealogy() routing.Handler {
+	return handleDataRequest(func(message string) string {
 		return fmt.Sprintf(`
 		{
 			"specializedTask": "-@escapeDefaultResponseSchema Construct a genealogy tree of depth 10 generations",
