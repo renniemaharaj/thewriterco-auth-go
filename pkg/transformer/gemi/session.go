@@ -104,3 +104,16 @@ func (s *Session) SendInput(ctx context.Context, input Input) (string, error) {
 	response := transformer.PartsToString(resp.Candidates[0].Content.Parts)
 	return response, nil
 }
+
+// SendString sends a string message to the AI model and returns the response
+func (s *Session) SendString(ctx context.Context, message string) (string, error) {
+	session := s.Model.StartChat()
+
+	resp, err := session.SendMessage(ctx, genai.Text(message))
+	if err != nil {
+		return "", fmt.Errorf("error sending message: %v", err)
+	}
+
+	response := transformer.PartsToString(resp.Candidates[0].Content.Parts)
+	return response, nil
+}

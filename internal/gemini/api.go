@@ -10,6 +10,7 @@ import (
 	"github.com/google/generative-ai-go/genai"
 
 	"github.com/renniemaharaj/thewriterco-auth-go/pkg/pool"
+	"github.com/renniemaharaj/thewriterco-auth-go/pkg/transformer"
 	"github.com/renniemaharaj/thewriterco-auth-go/pkg/transformer/gemi"
 )
 
@@ -39,7 +40,7 @@ func handleAsk() routing.Handler {
 			return c.Write(map[string]string{"response": "Failed to process request"})
 		}
 
-		log.Printf("Decoded request into struct: %v\n", chatSchema)
+		// log.Printf("Decoded request into struct: %v\n", chatSchema)
 
 		// Convert the AskSchema conversation to a list of genai.Content objects.
 		len := len(chatSchema.Conversation)
@@ -94,16 +95,16 @@ func handleDataRequest(promptGenerator func(string) string) routing.Handler {
 		}
 		defer cleanup()
 
-		input := gemi.Input{
-			Current: genai.Text(prompt),
-		}
 		// call the service to process the request.
-		resp, err := session.SendInput(context.Background(), input)
+		resp, err := session.SendString(context.Background(), prompt)
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
 		}
 
-		return c.Write(map[string]interface{}{"response": string(resp)})
+		linted := transformer.LintCodeFences(&resp, "json")
+
+		log.Println("Responding to request, with response: ", linted)
+		return c.Write(map[string]interface{}{"response": linted})
 	}
 }
 
@@ -111,18 +112,7 @@ func handleDataRequest(promptGenerator func(string) string) routing.Handler {
 func handleFind() routing.Handler {
 	return handleDataRequest(func(message string) string {
 		return fmt.Sprintf(`
-		{
-			"specializedTask": "-@escapeDefaultResponseSchema Locate contextually matching and relevant Bible (KJV) scriptures",
-			"responseSchema": [
-				{
-					"book": "VALID_BIBLE_BOOK_NAME",
-					"chapterNo": INTEGER,
-					"verseNo": INTEGER,
-					"verseContent": "STRING"
-				}
-			],
-			"userProvidedContext": "%s"
-		}
+		-@here Please construct a scripture response block, of verses, for verses matching the query: "%s"
 		`, message)
 	})
 }
