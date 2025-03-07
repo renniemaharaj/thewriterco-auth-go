@@ -11,26 +11,22 @@ import (
 	"github.com/renniemaharaj/thewriterco-auth-go/pkg/transformer"
 )
 
-func Model(ctx context.Context, apiKey string, base string) (*genai.GenerativeModel, func(), error) {
+// Model creates a new generative model from a configuration
+func Model(ctx context.Context, cfx transformer.Configuration) (*genai.GenerativeModel, func(), error) {
 	log.Println("Creating google gemini client...")
 
-	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	client, err := genai.NewClient(ctx, option.WithAPIKey(cfx.Key.Key))
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating client: %v", err)
 	}
 
-	// model := client.GenerativeModel("gemini-2.0-pro-exp-02-05")
-	model := client.GenerativeModel(base)
-	model.SetTemperature(1)
-	model.SetTopK(64)
-	model.SetTopP(0.95)
-	model.SetMaxOutputTokens(8192)
-	model.ResponseMIMEType = "text/plain"
-	model.SystemInstruction = &genai.Content{
-		Parts: []genai.Part{
-			genai.Text(transformer.GetProgramming()),
-		},
-	}
+	model := client.GenerativeModel(cfx.Key.Base)
+	model.SetTemperature(cfx.Parameters.Temperature)
+	model.SetTopK(cfx.Parameters.TopK)
+	model.SetTopP(cfx.Parameters.TopP)
+	model.SetMaxOutputTokens(cfx.Parameters.MaxOutputTokens)
+	model.ResponseMIMEType = cfx.Parameters.ResponseMIMEType
+	model.SystemInstruction = cfx.Parameters.SystemInstruction
 
 	return model, func() { client.Close() }, nil
 }

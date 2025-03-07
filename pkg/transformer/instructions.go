@@ -2,6 +2,7 @@ package transformer
 
 import (
 	"io"
+	"log"
 	"os"
 )
 
@@ -17,6 +18,7 @@ func GetProgramming() string {
 
 	instrBytes, err := io.ReadAll(instrFile)
 	if err != nil {
+		log.Println("Failed to read instructions file. Expected instructions.txt in the active directory.")
 		os.Exit(-1)
 	}
 	return string(instrBytes)

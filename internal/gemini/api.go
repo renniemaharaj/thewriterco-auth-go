@@ -7,7 +7,10 @@ import (
 	"log"
 
 	routing "github.com/go-ozzo/ozzo-routing/v2"
-	"github.com/renniemaharaj/thewriterco-auth-go/pkg/transformer"
+	"github.com/google/generative-ai-go/genai"
+
+	"github.com/renniemaharaj/thewriterco-auth-go/pkg/pool"
+	"github.com/renniemaharaj/thewriterco-auth-go/pkg/transformer/gemi"
 )
 
 // RegisterHandlers registers the routes for the GenAI API.
@@ -30,46 +33,42 @@ func handleAsk() routing.Handler {
 			return c.Write(map[string]string{"response": "Invalid request format"})
 		}
 
-		var askSchema transformer.RawAskSchema
-
-		if err := json.Unmarshal([]byte(rawRequest.Message), &askSchema); err != nil {
-			log.Printf("Failed to parse JSON string: %v", err)
-			return c.Write(map[string]string{"response": "Invalid JSON format"})
-		}
-
-		treatedSchema, err := RawToAskSchema(&askSchema)
-
+		chatSchema, err := DecodeConversation(rawRequest.Message)
 		if err != nil {
-			log.Printf("Failed to process AskSchema: %v", err)
+			log.Printf("Failed to process request: %v", err)
 			return c.Write(map[string]string{"response": "Failed to process request"})
 		}
 
-		session, cleanup, err := WaitFreeSession(context.Background())
+		log.Printf("Decoded request into struct: %v\n", chatSchema)
+
+		// Convert the AskSchema conversation to a list of genai.Content objects.
+		len := len(chatSchema.Conversation)
+		current := chatSchema.Conversation[len-1]
+
+		history := ExchangesToHistory(chatSchema.Conversation)
+
+		// Create the input object for the service.
+		input := gemi.Input{
+			Current: genai.Text(current.Content),
+			History: history,
+			Context: chatSchema.Context,
+		}
+
+		inputBytes, err := json.Marshal(input)
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
 		}
-		defer cleanup()
 
-		// call the service to process the request.
-		resp, err := session.Ask(context.Background(), treatedSchema)
+		log.Printf("Input Constructed: %v\n", string(inputBytes))
 
+		// Queue with with exponential backoff and validation automatic sending.
+		resp, err := pool.QueuedEVS(context.Background(), input, ValidateResponseSchema, 2, 1)
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
 		}
 
-		parsedResponse, err := ParseResponse(*resp)
-		if err != nil {
-			return c.Write(map[string]string{"response": err.Error()})
-		}
-
-		responseJSON, err := json.Marshal(parsedResponse)
-		if err != nil {
-			return c.Write(map[string]string{"response": "Failed to marshal response"})
-		}
-
-		log.Printf("Responding to request: %s", responseJSON)
-
-		return c.Write(map[string]interface{}{"response": string(responseJSON)})
+		log.Println("Responding to request")
+		return c.Write(map[string]interface{}{"response": string(resp)})
 	}
 }
 
@@ -89,28 +88,22 @@ func handleDataRequest(promptGenerator func(string) string) routing.Handler {
 
 		prompt := promptGenerator(request.Message)
 
-		session, cleanup, err := WaitFreeSession(context.Background())
+		session, cleanup, err := pool.Queue(context.Background())
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
 		}
 		defer cleanup()
 
+		input := gemi.Input{
+			Current: genai.Text(prompt),
+		}
 		// call the service to process the request.
-		resp, err := session.SendMessage(context.Background(), &prompt)
+		resp, err := session.SendInput(context.Background(), input)
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
 		}
 
-		dataObjects, err := ParseResponse(*resp)
-		if err != nil {
-			return c.Write(map[string]string{"response": err.Error()})
-		}
-
-		jsonStr, err := json.Marshal(dataObjects)
-		if err != nil {
-			return c.Write(map[string]string{"response": "Failed to serialize response"})
-		}
-		return c.Write(map[string]interface{}{"response": string(jsonStr)})
+		return c.Write(map[string]interface{}{"response": string(resp)})
 	}
 }
 

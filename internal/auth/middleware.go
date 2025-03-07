@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/dgrijalva/jwt-go"
 	routing "github.com/go-ozzo/ozzo-routing/v2"
 	"github.com/go-ozzo/ozzo-routing/v2/auth"
+	"github.com/golang-jwt/jwt"
 	"github.com/renniemaharaj/thewriterco-auth-go/internal/entity"
 	"github.com/renniemaharaj/thewriterco-auth-go/internal/errors"
 )

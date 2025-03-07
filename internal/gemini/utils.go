@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"log"
 
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/google/generative-ai-go/genai"
+	"github.com/renniemaharaj/thewriterco-auth-go/internal/gemini/blocks"
 	"github.com/renniemaharaj/thewriterco-auth-go/pkg/transformer"
 	"github.com/vmihailenco/msgpack/v5"
 )
@@ -24,39 +27,113 @@ func ParseResponse(jsonData string) (interface{}, error) {
 	return &response, nil
 }
 
-func RawToAskSchema(raw *transformer.RawAskSchema) (*transformer.AskSchema, error) {
+// func RequestMessageToAskSchema(message string) (*ChatSchema, error) {
+// 	var askSchema RawAskSchema
 
-	msgPackData, err := base64.StdEncoding.DecodeString(raw.Conversation)
+// 	err := json.Unmarshal([]byte(message), &askSchema)
+// 	if err != nil {
+// 		log.Printf("Failed to parse JSON string: %v", err)
+// 		return nil, fmt.Errorf("failed to parse JSON string: %w", err)
+// 		// return c.Write(map[string]string{"response": "Invalid JSON format"})
+// 	}
+
+// 	treatedSchema, err := RawToAskSchema(&askSchema)
+
+// 	if err != nil {
+// 		log.Printf("Failed to process AskSchema: %v", err)
+// 		return nil, fmt.Errorf("failed to process AskSchema: %w", err)
+// 		// return c.Write(map[string]string{"response": "Failed to process request"})
+// 	}
+
+//		return treatedSchema, nil
+//	}
+type structMessage struct {
+	Base64  string              `json:"encoded"`
+	Context []map[string]string `json:"context"`
+}
+
+func DecodeConversation(message string) (*ChatSchema, error) {
+
+	// log.Printf("Decoding message: %s\n", message)
+	msg := structMessage{}
+	var chatSchema ChatSchema
+
+	err := json.Unmarshal([]byte(message), &msg)
 	if err != nil {
+		return nil, fmt.Errorf("failed to parse JSON string: %w", err)
+	}
+
+	// log.Printf("Decoded message!: %v\n", msg)
+
+	// decoded := []byte(msg.Encoded)
+	decoded, err := base64.StdEncoding.DecodeString(msg.Base64)
+	if err != nil {
+		fmt.Println("Base64 Decoding Error:", err)
 		return nil, fmt.Errorf("failed to decode Base64: %w", err)
 	}
 
-	log.Printf("Decoded Base64: %s", msgPackData)
+	// log.Printf("Encoded Base64: %s\n", decoded)
 
-	var intermediate interface{}
-	if err := msgpack.Unmarshal(msgPackData, &intermediate); err != nil {
+	var conversation []map[string]string
+	err = msgpack.Unmarshal(decoded, &conversation)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse MessagePack (raw output): %w", err)
 	}
 
-	// Ensure correct type conversion
-	var conversation []transformer.Exchange
-	arr, ok := intermediate.([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("unexpected MessagePack structure: %T", intermediate)
-	}
+	// log.Printf("Decoded conversation: %v\n", conversation)
 
-	conversation = make([]transformer.Exchange, len(arr))
-	for i, v := range arr {
-		if obj, ok := v.(map[string]interface{}); ok {
-			conversation[i] = transformer.Exchange{
-				Role:    obj["role"].(string),
-				Content: obj["content"].(string),
-			}
+	chatSchema.Context = msg.Context
+	var exchanges []Exchange
+	for _, conv := range conversation {
+		exchanges = append(exchanges, Exchange{
+			Role:    conv["role"],
+			Content: conv["content"],
+		})
+	}
+	chatSchema.Conversation = exchanges
+
+	// log.Printf("Decoded message (finish) %v\n", chatSchema)
+	return &chatSchema, nil
+}
+
+func ExchangesToHistory(conversation []Exchange) []*genai.Content {
+	history := []*genai.Content{}
+
+	for idx, part := range conversation {
+		if idx == len(conversation)-1 {
+			break
 		}
+		history = append(history, &genai.Content{
+			Role: part.Role,
+
+			Parts: []genai.Part{
+				genai.Text(part.Content),
+			},
+		})
+	}
+	return history
+}
+
+func ValidateResponseSchema(resp string) error {
+	log.Println("Validating response...")
+
+	var r blocks.ResponseSchema
+
+	err := json.Unmarshal([]byte(resp), &r)
+	if err != nil {
+		log.Printf("JSON Unmarshal error: %v\n", err)
+		return err
 	}
 
-	return &transformer.AskSchema{
-		Conversation:      conversation,
-		AdditionalContext: raw.AdditionalContext,
-	}, nil
+	err = validation.ValidateStruct(&r,
+		validation.Field(&r.ResponseBlocks, validation.Required, validation.Each(validation.NotNil)),
+	)
+
+	if err != nil {
+		log.Printf("Validation failed: %v\n", err)
+		return err
+	}
+
+	log.Println("Validation passed!")
+	return nil
 }

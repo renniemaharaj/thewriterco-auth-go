@@ -27,24 +27,6 @@ func LintCodeFences(input *string, language string) *string {
 	return &trimmedInput
 }
 
-func ExchangesToContent(conversation []Exchange) []*genai.Content {
-	history := []*genai.Content{}
-
-	for idx, part := range conversation {
-		if idx == len(conversation)-1 {
-			break
-		}
-		history = append(history, &genai.Content{
-			Role: part.Role,
-
-			Parts: []genai.Part{
-				genai.Text(part.Content),
-			},
-		})
-	}
-	return history
-}
-
 func PartsToString(parts []genai.Part) string {
 	var sb strings.Builder
 	for _, part := range parts {

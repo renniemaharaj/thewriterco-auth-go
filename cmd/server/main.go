@@ -21,6 +21,7 @@ import (
 	"github.com/renniemaharaj/thewriterco-auth-go/internal/gemini"
 	"github.com/renniemaharaj/thewriterco-auth-go/internal/healthcheck"
 	"github.com/renniemaharaj/thewriterco-auth-go/internal/middleware"
+	"github.com/renniemaharaj/thewriterco-auth-go/pkg/pool"
 
 	"github.com/renniemaharaj/thewriterco-auth-go/pkg/accesslog"
 	"github.com/renniemaharaj/thewriterco-auth-go/pkg/log"
@@ -150,13 +151,13 @@ func buildHandler(logger log.Logger, cfg *config.Config) http.Handler {
 		logger,
 	)
 
-	keys, err := gemini.HydrateAPIPool("GEMINI_API_KEYS_POOL")
+	keys, err := pool.LoadEnv_GEMINI_API_KEYS_POOL("GEMINI_API_KEYS_POOL")
 	if err != nil {
 		logger.Error(err)
 		os.Exit(-1)
 	}
 
-	gemini.InitAPIKeys(keys)
+	pool.HydrateChannels(keys)
 
 	gemini.RegisterHandlers(rg.Group(""))
 
