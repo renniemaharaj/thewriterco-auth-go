@@ -24,7 +24,7 @@ type RateLimiter struct {
 	blockedDuration time.Duration
 }
 
-var maxBlockedVisitors = 100
+const maxBlockedVisitors = 21
 
 // GetLimiter returns the existing limiter for an IP or creates a new one
 func (rl *RateLimiter) GetLimiter(ip string) *rate.Limiter {
