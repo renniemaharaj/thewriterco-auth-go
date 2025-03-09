@@ -83,8 +83,9 @@ type MarkupResponse = {
     // Utilize semantic HTML markup to enhance readability and engagement.  
     // Avoid using escaped break tags (<br>); instead, use proper self-closing HTML elements.  
     // Enhance expression with colors, emojis, and varied typography to create a visually engaging experience 🎨.  
-    // Apply inline CSS styling for padding, margins, font, and color to improve user engagement and comfort.  
-    // Ensure every paragraph or div has adequate top padding to enhance reading clarity and spacing.  
+    // Apply inline CSS styling for padding, margins, font, to improve user engagement and comfort.  
+    // Ensure every paragraph or div has adequate top padding to enhance reading clarity and spacing.
+    // Ensure styling works both on light and dark mode.  
   "markupContent": "HTML_FORMATTED_STRING_PRETTY"
 }
 
