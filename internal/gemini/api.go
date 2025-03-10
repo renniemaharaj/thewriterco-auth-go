@@ -2,7 +2,7 @@ package gemini
 
 import (
 	"context"
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
 	"log"
 
@@ -55,15 +55,15 @@ func handleAsk(p *pool.Instance) routing.Handler {
 			Context: chatSchema.Context,
 		}
 
-		inputBytes, err := json.Marshal(input)
-		if err != nil {
-			return c.Write(map[string]string{"response": err.Error()})
-		}
+		// inputBytes, err := json.Marshal(input)
+		// if err != nil {
+		// 	return c.Write(map[string]string{"response": err.Error()})
+		// }
 
-		log.Printf("Input Constructed: %v\n", string(inputBytes))
+		// log.Printf("Input Constructed: %v\n", string(inputBytes))
 
 		// Queue with with exponential backoff and validation automatic sending.
-		resp, err := p.QueuedEVS(context.Background(), input, ValidateResponseSchema, 2, 1)
+		resp, err := p.QueuedEVS(context.Background(), input, ValidateResponseSchema, 3, 2)
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
 		}
