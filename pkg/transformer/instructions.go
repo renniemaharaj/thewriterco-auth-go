@@ -11,6 +11,7 @@ func GetProgramming() string {
 
 	instrFile, err := os.Open("instructions.txt")
 	if err != nil {
+		log.Println("Failed to open instructions file. Expected instructions.txt in the active directory.")
 		os.Exit(-1)
 	}
 

@@ -150,16 +150,16 @@ func buildHandler(logger log.Logger, cfg *config.Config) http.Handler {
 		auth.NewService(cfg.JWTSigningKey, cfg.JWTExpiration, logger),
 		logger,
 	)
-
-	keys, err := pool.LoadEnv_GEMINI_API_KEYS_POOL("GEMINI_API_KEYS_POOL")
+	geminiPool := pool.Instance{}
+	keys, err := geminiPool.LoadEnv_GEMINI_API_KEYS_POOL("GEMINI_API_KEYS_POOL")
 	if err != nil {
 		logger.Error(err)
 		os.Exit(-1)
 	}
 
-	pool.HydrateChannels(keys)
+	geminiPool.HydrateChannels(keys)
 
-	gemini.RegisterHandlers(rg.Group(""))
+	gemini.RegisterHandlers(rg.Group(""), &geminiPool)
 
 	return router
 }

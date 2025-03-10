@@ -15,15 +15,15 @@ import (
 )
 
 // RegisterHandlers registers the routes for the GenAI API.
-func RegisterHandlers(r *routing.RouteGroup) {
-	r.Post("/ask", handleAsk())
-	r.Post("/find", handleFind())
-	r.Post("/genealogy", handleGenealogy())
+func RegisterHandlers(r *routing.RouteGroup, p *pool.Instance) {
+	r.Post("/ask", handleAsk(p))
+	r.Post("/find", handleFind(p))
+	r.Post("/genealogy", handleGenealogy(p))
 
 }
 
 // handleAsk handles requests for the /ask endpoint.
-func handleAsk() routing.Handler {
+func handleAsk(p *pool.Instance) routing.Handler {
 	return func(c *routing.Context) error {
 		var rawRequest struct {
 			Message string `json:"message"`
@@ -63,7 +63,7 @@ func handleAsk() routing.Handler {
 		log.Printf("Input Constructed: %v\n", string(inputBytes))
 
 		// Queue with with exponential backoff and validation automatic sending.
-		resp, err := pool.QueuedEVS(context.Background(), input, ValidateResponseSchema, 2, 1)
+		resp, err := p.QueuedEVS(context.Background(), input, ValidateResponseSchema, 2, 1)
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
 		}
@@ -74,7 +74,7 @@ func handleAsk() routing.Handler {
 }
 
 // handleDataRequest is a generic handler for data-object-based endpoints.
-func handleDataRequest(promptGenerator func(string) string) routing.Handler {
+func handleDataRequest(promptGenerator func(string) string, p *pool.Instance) routing.Handler {
 	return func(c *routing.Context) error {
 		var request struct {
 			Message string `json:"message"`
@@ -89,7 +89,7 @@ func handleDataRequest(promptGenerator func(string) string) routing.Handler {
 
 		prompt := promptGenerator(request.Message)
 
-		session, cleanup, err := pool.Queue(context.Background())
+		session, cleanup, err := p.Queue(context.Background())
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
 		}
@@ -109,16 +109,16 @@ func handleDataRequest(promptGenerator func(string) string) routing.Handler {
 }
 
 // handleFind handles requests for the /find endpoint.
-func handleFind() routing.Handler {
+func handleFind(p *pool.Instance) routing.Handler {
 	return handleDataRequest(func(message string) string {
 		return fmt.Sprintf(`
 		-@here Please construct a scripture response block, of verses, for verses matching the query: "%s"
 		`, message)
-	})
+	}, p)
 }
 
 // handleGenealogy handles requests for the /genealogy endpoint.
-func handleGenealogy() routing.Handler {
+func handleGenealogy(p *pool.Instance) routing.Handler {
 	return handleDataRequest(func(message string) string {
 		return fmt.Sprintf(`
 		{
@@ -137,5 +137,5 @@ func handleGenealogy() routing.Handler {
 			"personOfInterest": "%s"
 		}
 		`, message)
-	})
+	}, p)
 }
