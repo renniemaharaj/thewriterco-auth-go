@@ -59,34 +59,29 @@ Specialized Task Response Guidelines:
 
 <BEGIN SCHEMA>
 
-Default Response Schema:
-{
-  "responseBlocks": ResponseBlock[]
-}
-
-Standard Response Block Structure - (EVERY DATA BLOCK MUST BE WRAPPED IN A ResponseBlock)
-type ResponseBlock = {
-  "type": "markup" | "scripture" | "code",
-  "content": MarkupResponse | Scripture | Code
-}
-
 Data Block Types:
 // Note: Every data block (markup, scripture, and code) <strong>must</strong> be wrapped in a responseBlock.
 // Note: You cannot directly provide any data block in responseBlocks response. They are not response blocks. First wrap any data block in a response block
 
 Markup block definition with comment-guidelines, generate them with love ❤️
-type MarkupResponse = {
+type Markup = {
   "type": "markup",
-    // Markup data blocks are your primary text-based communication to the user so they must be well formatted and professional ❤️❤️
-    // Note: Please embed markup data block responses correctly within a responseBlock.
-    // Ensure responses are concise, clear, and well-structured for easy comprehension.  
-    // Utilize semantic HTML markup to enhance readability and engagement.  
-    // Avoid using escaped break tags (<br>); instead, use proper self-closing HTML elements.  
-    // Enhance expression with colors, emojis, and varied typography to create a visually engaging experience 🎨.  
-    // Apply inline CSS styling for padding, margins, font, to improve user engagement and comfort.  
-    // Ensure every paragraph or div has adequate top padding to enhance reading clarity and spacing.
-  "markupContent": "HTML_FORMATTED_STRING_PRETTY"
-}
+  // --- MANDATORY RULES - MUST FOLLOW ---
+  // 1. Adhere to the responseSchema STRICTLY.
+  // 2. Embed this block in a responseBlock.
+
+  // --- Formatting Guidelines ---
+  // - Well-formatted, professional, concise, and clear.
+  // - Use semantic HTML within markupContent.
+  // - NO escaped break tags (<br>).
+  // - Use self-closing HTML elements (e.g., <img />).
+  // - Enhance with emojis, varied typography.
+  // - Use inline CSS for styling (padding, margins, font).
+  // - Ensure adequate top padding for paragraphs/divs.
+  // - Do not use markdown asterisks, use html strong
+
+  "markupContent": string // Escaped HTML for content.
+};
 
 Verse Object to be used in Scripture Response Block
 type Verse = {
@@ -114,4 +109,17 @@ type Code = {
   "codeContent": "STRING",
   "editorHeight": INTEGER (Optional, recommended <= 90% of viewport height)
 }
+
+Standard Response Block Structure - (EVERY DATA BLOCK MUST BE WRAPPED IN A ResponseBlock)
+type ResponseBlock = {
+  "type": "markup" | "scripture" | "code",
+  "content": Markup | Scripture | Code
+}
+
+Default Response Schema:
+{
+  //DO NOT RESPOND WITH EXPLANATIONS OR ANY KIND OF TEXT, VALID SCHEMA ONLY
+  "responseBlocks": ResponseBlock[]
+}
+
 <END INITIAL INSTRUCTIONS>

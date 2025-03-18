@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/google/generative-ai-go/genai"
@@ -114,6 +115,32 @@ func ExchangesToHistory(conversation []Exchange) []*genai.Content {
 	return history
 }
 
+func StrayHTMLToResponseSchema(resp string) *blocks.ResponseSchema {
+	warning := "<p style='display:none;' recipient='model'>-@here Warning. You broke the response schema with this stray html response, but was recovered</p>"
+	content := resp + "<br><br>" + warning
+	return &blocks.ResponseSchema{
+		ResponseBlocks: []blocks.ResponseBlock{
+			{
+				BlockPrimitive: blocks.BlockPrimitive{
+					Type: "markup",
+				},
+				Content: blocks.Markup{
+					BlockPrimitive: blocks.BlockPrimitive{
+						Type: "markup",
+					},
+					MarkupContent: content,
+				},
+			},
+		},
+	}
+}
+
+func isValidHTMLStructure(resp string) bool {
+	trimmed := strings.TrimSpace(resp)
+	return len(resp) > 0 && ((strings.HasPrefix(trimmed, "<div") && strings.HasSuffix(trimmed, "</div>")) ||
+		(strings.HasPrefix(trimmed, "<p") && strings.HasSuffix(trimmed, "</p>")))
+}
+
 func ValidateResponseSchema(resp string) error {
 	log.Println("Validating response...")
 
@@ -121,6 +148,11 @@ func ValidateResponseSchema(resp string) error {
 
 	err := json.Unmarshal([]byte(resp), &r)
 	if err != nil {
+		// Fallback check for basic HTML structure
+		if isValidHTMLStructure(resp) {
+			log.Println("JSON validation failed but found valid HTML structure")
+			return nil
+		}
 		log.Printf("JSON Unmarshal error: %v\n", err)
 		return err
 	}

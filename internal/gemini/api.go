@@ -2,6 +2,8 @@ package gemini
 
 import (
 	"context"
+	"encoding/json"
+
 	// "encoding/json"
 	"fmt"
 	"log"
@@ -66,6 +68,18 @@ func handleAsk(p *pool.Instance) routing.Handler {
 		resp, err := p.QueuedEVS(context.Background(), input, ValidateResponseSchema, 3, 2)
 		if err != nil {
 			return c.Write(map[string]string{"response": err.Error()})
+		}
+
+		if isValidHTMLStructure(resp) {
+			stray := StrayHTMLToResponseSchema(resp)
+			log.Printf("❗Responding to request with stray HTML response %v", stray)
+
+			strayBytes, err := json.Marshal(stray)
+			if err != nil {
+				return c.Write(map[string]string{"response": err.Error()})
+			}
+
+			return c.Write(map[string]interface{}{"response": string(strayBytes)})
 		}
 
 		log.Println("Responding to request")
